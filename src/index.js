@@ -1,31 +1,21 @@
 import { select, selectAll } from 'd3'
 
-const header = select('#page-header');
-const ps = selectAll('p');
-console.log(header.node())
-console.log(ps.nodes())
-
 const buttons = selectAll("button").nodes()
 
-buttons[0].addEventListener('click', change1);
-buttons[1].addEventListener('click', change2);
-buttons[2].addEventListener('click', change3);
-buttons[3].addEventListener('click', change4);
+buttons[0].addEventListener('click', () => change('cat.jpeg'));
+buttons[1].addEventListener('click', () => change('image.jpeg'));
+buttons[2].addEventListener('click', changeColor);
 
-function change1() {
-    const p = select(".main-paragraph");
-    p.text('new text');
+
+function change(imageName) {
+    select('#animalImg').attr('src', imageName);
 }
 
-function change2() {
-    const ps = selectAll('p')
-    ps.text('new text 2')
-}
-
-function change3() {
-    select('p').html('<b>test</b> test')
-}
-
-function change4() {
-    select('p').text('<b>test</b> test')
+function changeColor() {
+    const color = select('#text').style('color');
+    if (color === 'red') {
+        select('#text').style('color', 'blue')
+    } else {
+        select('#text').style('color', 'red')
+    }
 }
