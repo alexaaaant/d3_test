@@ -6,17 +6,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
+    <style>
+        body {
+            font-family: Helvetica, Arial, sans-serif
+        }
+
+        h1 {
+            background-color: #2a5599;
+            padding: 5px;
+        }
+
+        svg {
+            border: solid 1px black;
+        }
+
+        .mainView {
+            display: flex;
+        }
+    </style>
 </head>
 
 <body>
-    <div>
-        <img id='animalImg' src='./image.jpeg'></img>
-    </div>
-    <div id='text' style="font-size:40px">This is an animal</div>
-    <div>
-        <button>Show cat</button>
-        <button>Show dog</button>
-        <button>Change color</button>
+    <h1>Airlines Routes</h1>
+    <div class="mainView">
+        <div>
+            <h2>Airlines</h2>
+            <svg id="AirlinesChart"></svg>
+        </div>
+        <div>
+            <h2>Airports</h2>
+            <svg id="Map"></svg>
+        </div>
     </div>
 </body>
 <script src='main.js'></script>
