@@ -1,21 +1,38 @@
-import { select, selectAll } from 'd3'
+import { select, selectAll, csv, ascending, sum, mean, extent } from 'd3'
 
 const buttons = selectAll("button").nodes()
+const container = select("#container")
 
-buttons[0].addEventListener('click', () => change('cat.jpeg'));
-buttons[1].addEventListener('click', () => change('image.jpeg'));
-buttons[2].addEventListener('click', changeColor);
+let clients = [{
+    name: "client0"
+}]
+let count = 1;
 
+buttons[0].addEventListener('click', add);
+buttons[1].addEventListener('click', remove);
 
-function change(imageName) {
-    select('#animalImg').attr('src', imageName);
+function add() {
+    clients.push({ name: `client ${count}` });
+    count++;
+    showData(clients)
 }
 
-function changeColor() {
-    const color = select('#text').style('color');
-    if (color === 'red') {
-        select('#text').style('color', 'blue')
-    } else {
-        select('#text').style('color', 'red')
-    }
+function remove() {
+    clients = clients.slice(0, -1);
+    count--;
+    showData(clients);
 }
+
+function showData(clients) {
+    let join = container
+        .selectAll("div")
+        .data(clients)
+    join.enter()
+        .append("div")
+        .text(c => c.name + " New")
+    join.text(c => c.name + " Updated")
+    join.exit().remove()
+    console.log(join)
+}
+
+showData(clients)
