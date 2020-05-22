@@ -1,17 +1,42 @@
 import { select, max, scaleLinear, csv, scaleBand, axisBottom, axisLeft } from 'd3'
 
-const container = select("#container")
+const store = {};
 
-csv("data.csv").then(showData)
 
-let body = select("#body");
+async function loadData() {
+    let promise = csv("routes.csv")
+    const routes = await promise;
+    store.routes = routes;
+    return store;
+}
 
-function showData(clients) {
-    const maxValue = max(clients, d => d.weight);
+function groupByAirline(data) {
+    let result = data.reduce((result, d) => {
+        let currentData = result[d.AirlineID] || {
+            "AirlineID": d.AirlineID,
+            "AirlineName": d.AirlineName,
+            "Count": 0
+        }
 
-    const widthScale = scaleLinear()
-        .range([0, 300])
-        .domain([0, maxValue])
+        currentData.Count++
+
+        result[d.AirlineID] = currentData;
+
+        return result;
+    }, {})
+
+    result = Object.keys(result).map(key => result[key])
+    result = result.sort((a, b) => b.Count - a.Count)
+    return result
+}
+
+function showData() {
+    let routes = store.routes
+    let airlines = groupByAirline(store.routes);
+    console.log(airlines)
+}
+
+loadData().then(showData);
 
     const positionScale = scaleBand()
         .range([0, 200])
