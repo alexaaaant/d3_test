@@ -1,121 +1,161 @@
-import { select, max, scaleLinear, csv, scaleBand, axisBottom, axisLeft } from 'd3'
+import * as d3 from 'd3'
 
-const store = {};
+const body = d3.select("#body")
+d3.csv("data.csv").then(showData)
 
+function showData(data) {
+    const bodyH = 200
+    const bodyW = 400
 
-async function loadData() {
-    let promise = csv("routes.csv")
-    const routes = await promise;
-    store.routes = routes;
-    return store;
+    data = data.map(d => ({
+        date: new Date(d.date),
+        price: +d.price
+    }))
+
+    const maxValue = d3.max(data, d => d.price)
+
+    const yScale = d3.scaleLinear()
+        .range([bodyH, 0])
+        .domain([0, maxValue])
+
+    body.append("g")
+        .call(d3.axisLeft(yScale))
+
+    const xScale = d3.scaleTime()
+        .domain(d3.extent(data, d => d.date))
+        .range([0, bodyW])
+
+    body.append("g")
+        .attr("transform", `translate(0,${bodyH})`)
+        .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat("%b")))
+
+    let valueline = d3.line()
+        .x(d => xScale(d.date))
+        .y(d => yScale(d.price))
+        .defined(d => !!d.price)
+
+    body.append("path")
+        .datum(data)
+        .attr("d", valueline)
+        .attr("class", "line")
 }
 
-function groupByAirline(data) {
-    let result = data.reduce((result, d) => {
-        let currentData = result[d.AirlineID] || {
-            "AirlineID": d.AirlineID,
-            "AirlineName": d.AirlineName,
-            "Count": 0
-        }
 
-        currentData.Count++
+// const store = {};
 
-        result[d.AirlineID] = currentData;
+// async function loadData() {
+//     let promise = csv("routes.csv")
+//     const routes = await promise;
+//     store.routes = routes;
+//     return store;
+// }
 
-        return result;
-    }, {})
+// function groupByAirline(data) {
+//     let result = data.reduce((result, d) => {
+//         let currentData = result[d.AirlineID] || {
+//             "AirlineID": d.AirlineID,
+//             "AirlineName": d.AirlineName,
+//             "Count": 0
+//         }
 
-    result = Object.keys(result).map(key => result[key])
-    result = result.sort((a, b) => b.Count - a.Count)
-    return result
-}
+//         currentData.Count++
 
-function showData() {
-    let airlines = groupByAirline(store.routes);
-    drawAirlinesChart(airlines)
-}
+//         result[d.AirlineID] = currentData;
 
-function getAirlinesChartConfig() {
-    let width = 350;
-    let height = 400;
-    let margin = {
-        top: 10,
-        bottom: 50,
-        left: 130,
-        right: 10
-    }
+//         return result;
+//     }, {})
 
-    let bodyHeight = height - margin.top - margin.bottom
-    let bodyWidth = width - margin.left - margin.right
+//     result = Object.keys(result).map(key => result[key])
+//     result = result.sort((a, b) => b.Count - a.Count)
+//     return result
+// }
 
-    let container = select("#AirlinesChart");
-    container
-        .attr("width", width)
-        .attr("height", height)
+// function showData() {
+//     let airlines = groupByAirline(store.routes);
+//     drawAirlinesChart(airlines)
+// }
 
-    return { width, height, margin, bodyHeight, bodyWidth, container }
-}
+// function getAirlinesChartConfig() {
+//     let width = 350;
+//     let height = 400;
+//     let margin = {
+//         top: 10,
+//         bottom: 50,
+//         left: 130,
+//         right: 10
+//     }
 
-function drawAirlinesChart(airlines) {
-    let config = getAirlinesChartConfig();
-    let scales = getAirlinesChartScales(airlines, config);
-    drawBarsAirlinesChart(airlines, scales, config)
-    drawAxesAirlinesChart(scales, config);
-}
+//     let bodyHeight = height - margin.top - margin.bottom
+//     let bodyWidth = width - margin.left - margin.right
 
-function getAirlinesChartScales(airlines, config) {
-    let { bodyWidth, bodyHeight } = config;
-    let maximunCount = max(airlines, v => v.Count)
+//     let container = select("#AirlinesChart");
+//     container
+//         .attr("width", width)
+//         .attr("height", height)
 
-    let xScale = scaleLinear()
-        .range([0, bodyWidth])
-        .domain([0, maximunCount])
+//     return { width, height, margin, bodyHeight, bodyWidth, container }
+// }
 
-    let yScale = scaleBand()
-        .range([0, bodyHeight])
-        .domain(airlines.map(a => a.AirlineName))
-        .padding(0.2)
+// function drawAirlinesChart(airlines) {
+//     let config = getAirlinesChartConfig();
+//     let scales = getAirlinesChartScales(airlines, config);
+//     drawBarsAirlinesChart(airlines, scales, config)
+//     drawAxesAirlinesChart(scales, config);
+// }
 
-    return { xScale, yScale }
-}
+// function getAirlinesChartScales(airlines, config) {
+//     let { bodyWidth, bodyHeight } = config;
+//     let maximunCount = max(airlines, v => v.Count)
 
-function drawBarsAirlinesChart(airlines, scales, config) {
-    let { margin, container } = config
-    let { xScale, yScale } = scales
-    let body = container.append("g")
-        .style("transform",
-            `translate(${margin.left}px,${margin.top}px)`
-        )
+//     let xScale = scaleLinear()
+//         .range([0, bodyWidth])
+//         .domain([0, maximunCount])
 
-    let bars = body.selectAll(".bar")
-        .data(airlines)
+//     let yScale = scaleBand()
+//         .range([0, bodyHeight])
+//         .domain(airlines.map(a => a.AirlineName))
+//         .padding(0.2)
 
-    bars.enter().append("rect")
-        .attr("height", yScale.bandwidth())
-        .attr("y", (d) => yScale(d.AirlineName))
-        .attr("width", v => xScale(v.Count))
-        .attr("fill", "#2a5599")
-}
+//     return { xScale, yScale }
+// }
 
-function drawAxesAirlinesChart(scales, config) {
-    let { xScale, yScale } = scales
-    let { container, margin, height } = config;
-    let axisX = axisBottom(xScale)
-        .ticks(5)
+// function drawBarsAirlinesChart(airlines, scales, config) {
+//     let { margin, container } = config
+//     let { xScale, yScale } = scales
+//     let body = container.append("g")
+//         .style("transform",
+//             `translate(${margin.left}px,${margin.top}px)`
+//         )
 
-    container.append("g")
-        .style("transform",
-            `translate(${margin.left}px,${height - margin.bottom}px)`
-        )
-        .call(axisX)
+//     let bars = body.selectAll(".bar")
+//         .data(airlines)
 
-    let axisY = axisLeft(yScale)
+//     bars.enter().append("rect")
+//         .attr("height", yScale.bandwidth())
+//         .attr("y", (d) => yScale(d.AirlineName))
+//         .attr("width", v => xScale(v.Count))
+//         .attr("fill", "#2a5599")
+// }
 
-    container.append("g")
-        .style("transform",
-            `translate(${margin.left}px,${margin.top}px)`
-        )
-        .call(axisY)
-}
+// function drawAxesAirlinesChart(scales, config) {
+//     let { xScale, yScale } = scales
+//     let { container, margin, height } = config;
+//     let axisX = axisBottom(xScale)
+//         .ticks(5)
 
-loadData().then(showData);
+//     container.append("g")
+//         .style("transform",
+//             `translate(${margin.left}px,${height - margin.bottom}px)`
+//         )
+//         .call(axisX)
+
+//     let axisY = axisLeft(yScale)
+
+//     container.append("g")
+//         .style("transform",
+//             `translate(${margin.left}px,${margin.top}px)`
+//         )
+//         .call(axisY)
+// }
+
+// loadData().then(showData);
