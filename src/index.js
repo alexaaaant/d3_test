@@ -3,7 +3,7 @@ import * as d3 from 'd3'
 const body = d3.select("#body")
 
 Promise.all([
-    d3.csv("dataset.csv"),
+    d3.csv("data.csv"),
     d3.json("countries.geo.json"),
 ]).then(showData)
 
@@ -14,29 +14,7 @@ function showData(datasources) {
     const bodyH = 400
     const bodyW = 400
 
-    let dataIndex = {}
-    data.forEach(c => {
-        let country = c.Country;
-        dataIndex[country] = +c.Magnitude
-    });
-
-    mapInfo.features = mapInfo.features.map(d => {
-        let country = d.properties.name;
-        let magn = dataIndex[country];
-        d.properties.magnitude = magn;
-        return d;
-    })
-
-    let maxEarthquake = d3.max(mapInfo.features, d => d.properties.magnitude);
-
-    let medianEarthquake = d3.median(mapInfo.features, d => d.properties.magnitude);
-
-
-    let cScale = d3.scaleLinear()
-        .domain([0, medianEarthquake, maxEarthquake])
-        .range(['white', 'orange', 'red'])
-
-    let projection = d3.geoNaturalEarth1()
+    let projection = d3.geoMercator()
         .scale(100)
         .translate([bodyW / 2, bodyH / 2])
 
@@ -48,8 +26,19 @@ function showData(datasources) {
         .enter()
         .append("path")
         .attr("d", d => path(d))
-        .attr("stroke", "black")
-        .attr("fill", d => d.properties.magnitude ? cScale(d.properties.magnitude) : "white")
+        .attr("stroke", "#999")
+        .attr("fill", "#eee")
+
+    body.selectAll("circle")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("r", 2)
+        .attr("fill", "#0055AA")
+        .style("opacity", 0.5) 
+        .attr("cx", d => projection([+d.Longitude, +d.Latitude])[0])
+        .attr("cy", d => projection([+d.Longitude, +d.Latitude])[1])
+
 }
 
 
