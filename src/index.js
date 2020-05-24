@@ -1,11 +1,40 @@
 import * as d3 from 'd3'
 
 const body = d3.select("#body")
-d3.json("countries.geo.json").then(showData)
 
-function showData(mapInfo) {
+Promise.all([
+    d3.csv("dataset.csv"),
+    d3.json("countries.geo.json"),
+]).then(showData)
+
+function showData(datasources) {
+    const mapInfo = datasources[1];
+    const data = datasources[0];
+
     const bodyH = 400
     const bodyW = 400
+
+    let dataIndex = {}
+    data.forEach(c => {
+        let country = c.Country;
+        dataIndex[country] = +c.Magnitude
+    });
+
+    mapInfo.features = mapInfo.features.map(d => {
+        let country = d.properties.name;
+        let magn = dataIndex[country];
+        d.properties.magnitude = magn;
+        return d;
+    })
+
+    let maxEarthquake = d3.max(mapInfo.features, d => d.properties.magnitude);
+
+    let medianEarthquake = d3.median(mapInfo.features, d => d.properties.magnitude);
+
+
+    let cScale = d3.scaleLinear()
+        .domain([0, medianEarthquake, maxEarthquake])
+        .range(['white', 'orange', 'red'])
 
     let projection = d3.geoNaturalEarth1()
         .scale(100)
@@ -20,7 +49,7 @@ function showData(mapInfo) {
         .append("path")
         .attr("d", d => path(d))
         .attr("stroke", "black")
-        .attr("fill", "none")
+        .attr("fill", d => d.properties.magnitude ? cScale(d.properties.magnitude) : "white")
 }
 
 
