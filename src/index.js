@@ -8,36 +8,30 @@ function showData(data) {
     const bodyW = 400
 
     data = data.map(d => ({
-        date: new Date(d.date),
-        price: +d.price
+        country: d.country,
+        sales: +d.sales
     }))
 
-    const maxValue = d3.max(data, d => d.price)
+    let pie = d3.pie()
+        .value(d => d.sales)
 
-    const yScale = d3.scaleLinear()
-        .range([bodyH, 0])
-        .domain([0, maxValue])
+    let colorScale = d3.scaleOrdinal()
+        .range(d3.schemeCategory10)
+        .domain(data.map(d => d.country))
 
-    body.append("g")
-        .call(d3.axisLeft(yScale))
+    let arc = d3.arc()
+        .outerRadius(bodyH / 2)
+        .innerRadius(50)
 
-    const xScale = d3.scaleTime()
-        .domain(d3.extent(data, d => d.date))
-        .range([0, bodyW])
-
-    body.append("g")
-        .attr("transform", `translate(0,${bodyH})`)
-        .call(d3.axisBottom(xScale).tickFormat(d3.timeFormat("%b")))
-
-    let valueline = d3.line()
-        .x(d => xScale(d.date))
-        .y(d => yScale(d.price))
-        .defined(d => !!d.price)
-
-    body.append("path")
-        .datum(data)
-        .attr("d", valueline)
-        .attr("class", "line")
+    let g = body.selectAll(".arc")
+        .data(pie(data))
+        .enter()
+        .append("g")
+    g.append("path")
+        .attr("d", arc)
+        .attr("fill", d => {
+            return colorScale(d.data.country)
+        })
 }
 
 

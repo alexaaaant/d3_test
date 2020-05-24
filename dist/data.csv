@@ -1,7 +1,7 @@
-date,price
-01.20.2015,0.0
-02.21.2015,2.5
-04.23.2015,3.5
-06.25.2015,0.5
-07.26.2015,1.0
-08.27.2015,1.5
+country,sales
+countryA,10
+countryB,50
+countryC,30
+countryD,7
+countryE2015,180
+countryG,25
