@@ -1,37 +1,26 @@
 import * as d3 from 'd3'
 
 const body = d3.select("#body")
-d3.csv("data.csv").then(showData)
+d3.json("countries.geo.json").then(showData)
 
-function showData(data) {
-    const bodyH = 200
+function showData(mapInfo) {
+    const bodyH = 400
     const bodyW = 400
 
-    data = data.map(d => ({
-        country: d.country,
-        sales: +d.sales
-    }))
+    let projection = d3.geoNaturalEarth1()
+        .scale(100)
+        .translate([bodyW / 2, bodyH / 2])
 
-    let pie = d3.pie()
-        .value(d => d.sales)
+    let path = d3.geoPath()
+        .projection(projection)
 
-    let colorScale = d3.scaleOrdinal()
-        .range(d3.schemeCategory10)
-        .domain(data.map(d => d.country))
-
-    let arc = d3.arc()
-        .outerRadius(bodyH / 2)
-        .innerRadius(50)
-
-    let g = body.selectAll(".arc")
-        .data(pie(data))
+    body.selectAll("path")
+        .data(mapInfo.features)
         .enter()
-        .append("g")
-    g.append("path")
-        .attr("d", arc)
-        .attr("fill", d => {
-            return colorScale(d.data.country)
-        })
+        .append("path")
+        .attr("d", d => path(d))
+        .attr("stroke", "black")
+        .attr("fill", "none")
 }
 
 
