@@ -35,6 +35,9 @@ function showData() {
     let airlines = groupByAirline(store.routes);
     drawAirlinesChart(airlines);
     drawMap(store.geoJSON);
+
+    const airports = groupByAirport(store.routes);
+    drawAirports(airports);
 }
 
 function getAirlinesChartConfig() {
@@ -153,6 +156,53 @@ function drawMap(geoJson) {
     const config = getMapConfig();
     const projection = getMapProjection(config);
     drawBaseMap(config.container, geoJson.features, projection);
+}
+
+function groupByAirport(data) {
+    let result = data.reduce((result, d) => {
+        const currentDest = result[d.DestAirportID] || {
+            "AirportID": d.DestAirportID,
+            "Airport": d.DestAirport,
+            "Latitude": +d.DestLatitude,
+            "Longitude": +d.DestLongitude,
+            "City": d.DestCity,
+            "Country": d.DestCountry,
+            "Count": 0,
+        }
+        currentDest.Count += 1;
+        result[d.DestAirportID] = currentDest;
+
+        const currentSource = result[d.SourceAirportID] || {
+            "AirportID": d.SourceAirportID,
+            "Airport": d.SourceAirport,
+            "Latitude": +d.SourceLatitude,
+            "Longitude": +d.SourceLongitude,
+            "City": d.SourceCity,
+            "Country": d.SourceCountry,
+            "Count": 0,
+        }
+        currentSource.Count += 1;
+        result[d.SourceAirportID] = currentSource;
+        return result;
+    }, {});
+
+    result = Object.keys(result).map(key => result[key]);
+    return result;
+}
+
+function drawAirports(airports) {
+    const config = getMapConfig();
+    const projection = getMapProjection(config);
+    const container = config.container;
+
+    const circles = container.selectAll("circle")
+        .data(airports)
+        .enter()
+        .append("circle")
+        .attr("r", 1)
+        .attr("fill", "#2a5599")
+        .attr("cx", d => projection([+d.Longitude, +d.Latitude])[0])
+        .attr("cy", d => projection([+d.Longitude, +d.Latitude])[1])
 }
 
 loadData().then(showData);
