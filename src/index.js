@@ -1,58 +1,39 @@
 import * as d3 from 'd3'
 
-d3.json("nodes.json").then(showData)
+d3.json("data.json").then(showData)
 
 const body = d3.select("#body")
 
-function createElements(data) {
-    const nodes = body.append("g")
-        .attr("class", "nodes")
-        .selectAll("circle")
-        .data(data.nodes)
-        .enter()
-        .append("circle")
-        .attr("r", 5)
-        .attr("fill", "black")
-
-    const links = body.append("g")
-        .attr("class", "links")
-        .selectAll("line")
-        .data(data.links)
-        .enter()
-        .append("line")
-        .attr("stroke", "black")
-}
-
-function updateElements() {
-    d3.select(".nodes")
-        .selectAll("circle")
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y)
-
-    d3.select(".links")
-        .selectAll("line")
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y)
-
-}
-
 function showData(data) {
-    const bodyHeight = 400;
-    const bodyWidth = 400;
-    createElements(data);
-    const simulation = d3.forceSimulation()
-        .force("link", d3.forceLink().id((d) => d.id))
-        .force("charge", d3.forceManyBody())
-        .force("center", d3.forceCenter(bodyWidth / 2, bodyHeight / 2))
+    const bodyHeight = 300;
+    const bodyWidth = 500;
 
-    simulation
-        .nodes(data.nodes)
-        .on("tick", updateElements)
+    const treemap = d3.treemap()
+        .size([bodyWidth, bodyHeight])
+        .paddingInner(2)
 
-    simulation.force("link")
-        .links(data.links)
+    const root = d3.hierarchy(data)
+        .sum(d => d.sales)
+
+    treemap(root)
+
+    const cScale = d3.scaleOrdinal(d3.schemeCategory10)
+
+    const cell = body.selectAll("g")
+        .data(root.leaves())
+        .enter()
+        .append("g")
+        .attr("transform", d => `translate(${d.x0}, ${d.y0})`)
+
+    cell.append("rect")
+        .attr("width", d => d.x1 - d.x0)
+        .attr("height", d => d.y1 - d.y0)
+        .attr("fill", d => cScale(d.parent.data.name))
+
+    cell.append("text")
+        .text(d => d.data.name)
+        .attr("alignment-baseline", "hanging")
+        .attr("fill", "white")
 }
 // const store = {};
 
