@@ -1,6 +1,5 @@
 import * as d3 from 'd3'
 
-let body = d3.select("#body")
 let yAxisContainer = d3.select("#yAxis")
 let data = []
 d3.csv("data.csv").then((d) => {
@@ -8,9 +7,34 @@ d3.csv("data.csv").then((d) => {
     showData(data)
 })
 
-function select(datapoint) {
+let body = d3.select("#body")
 
-}
+d3.csv("data.csv").then((data) => {
+    showData(data)
+    d3.select("#save").on("click", function () {
+        let name = d3.select("#name").node().value;
+        let weight = d3.select("#weight").node().value;
+        let client = data.find(d => d.Name === name);
+        if (client) {
+            client.Weight = weight;
+        } else {
+            data.push({
+                Name: name,
+                Weight: weight,
+            })
+        }
+
+        showData(data)
+    })
+
+    d3.select("#min-weight").on("change", function () {
+        let value = this.value;
+        const filteredData = data.filter(c => +c.Weight > value);
+        showData(filteredData)
+    })
+})
+
+
 
 function showData(clients) {
     let max = d3.max(clients, d => +d.Weight)
@@ -22,44 +46,27 @@ function showData(clients) {
     let join = body.selectAll("rect")
         .data(clients)
 
-    join.enter()
+    let newelements = join.enter()
         .append("rect")
         .style("fill", "blue")
         .style("stroke", "white")
+        .on("click", function (d) {
+            d3.select("#name").node().value = d.Name;
+            d3.select("#weight").node().value = d.Weight
+        })
+
+    join.merge(newelements).transition()
         .attr("width", d => scale(+d.Weight))
         .attr("height", scalePosition.bandwidth())
         .attr("transform", d => `translate(0,${scalePosition(d.Name)})`)
-        .on("click", d => {
-            d3.select("#details").text(d.Name)
-        })
-        .on("mouseover", function () {
-            this.style.fill = "red";
-        })
-        .on("mouseout", function () {
-            this.style.fill = "blue";
-        })
 
-    let line = d3.select("#container").append("g")
-        .attr("transform", "translate(0,-10)")
-
-    line = line.append("line")
-        .attr("x1", 0)
-        .attr("x2", 0)
-        .attr("y1", 0)
-        .attr("y2", 200)
-        .attr("stroke", "red")
-        .attr("stroke-width", "3px")
+    join.exit().transition().remove()
 
     let yAxis = d3.axisLeft(scalePosition)
     yAxisContainer = d3.select("#yAxis")
         .style("transform", "translate(40px, 10px)")
         .transition()
         .call(yAxis)
-
-    d3.select("#container").on("mousemove", function () {
-        const x = d3.mouse(this)[0];
-        line.attr("transform", `translate(${x},-10)`)
-    })
 
 }
 // const store = {};

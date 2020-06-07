@@ -23,6 +23,7 @@
         .mainView {
             display: flex;
         }
+
         /* .line {
             fill: none;
             stroke: blue;
@@ -36,9 +37,11 @@
         <g id="yAxis"></g>
     </svg>
     <div id="details">
-        <div style="color: #999">
-            User Details...
-        </div>
+        <div>Name: <input id="name" /></div>
+        <div>Weight: <input id="weight" /></div>
+        <button id="save">Add/Update</button>
+        <hr>
+        <div>Min Weight: </div><input id="min-weight" type="number" />
     </div>
     <!-- <h1>Airlines Routes</h1>
     <div class="mainView">
