@@ -1,208 +1,226 @@
 import * as d3 from 'd3'
 
-const store = {};
+d3.json("nodes.json").then(showData)
 
-async function loadData() {
-    return Promise.all([d3.csv("routes.csv"), d3.json("countries.geo.json")])
-        .then((datasets) => {
-            store.routes = datasets[0];
-            store.geoJSON = datasets[1];
-            return store;
+function showData(data) {
+    console.log(data)
+    const bodyHeight = 400;
+    const bodyWidth = 400;
+
+    const simulation = d3.forceSimulation()
+        .force("link", d3.forceLink().id((d) => d.id))
+        .force("charge", d3.forceManyBody())
+        .force("center", d3.forceCenter(bodyWidth / 2, bodyHeight / 2))
+
+    simulation.nodes(data.nodes)
+        .on("tick", d => {
+            console.log(data)
         })
+    simulation.force("link").links(data.links)
 }
+// const store = {};
 
-function groupByAirline(data) {
-    let result = data.reduce((result, d) => {
-        let currentData = result[d.AirlineID] || {
-            "AirlineID": d.AirlineID,
-            "AirlineName": d.AirlineName,
-            "Count": 0
-        }
+// async function loadData() {
+//     return Promise.all([d3.csv("routes.csv"), d3.json("countries.geo.json")])
+//         .then((datasets) => {
+//             store.routes = datasets[0];
+//             store.geoJSON = datasets[1];
+//             return store;
+//         })
+// }
 
-        currentData.Count++
+// function groupByAirline(data) {
+//     let result = data.reduce((result, d) => {
+//         let currentData = result[d.AirlineID] || {
+//             "AirlineID": d.AirlineID,
+//             "AirlineName": d.AirlineName,
+//             "Count": 0
+//         }
 
-        result[d.AirlineID] = currentData;
+//         currentData.Count++
 
-        return result;
-    }, {})
+//         result[d.AirlineID] = currentData;
 
-    result = Object.keys(result).map(key => result[key])
-    result = result.sort((a, b) => b.Count - a.Count)
-    return result
-}
+//         return result;
+//     }, {})
 
-function showData() {
-    let airlines = groupByAirline(store.routes);
-    drawAirlinesChart(airlines);
-    drawMap(store.geoJSON);
+//     result = Object.keys(result).map(key => result[key])
+//     result = result.sort((a, b) => b.Count - a.Count)
+//     return result
+// }
 
-    const airports = groupByAirport(store.routes);
-    drawAirports(airports);
-}
+// function showData() {
+//     let airlines = groupByAirline(store.routes);
+//     drawAirlinesChart(airlines);
+//     drawMap(store.geoJSON);
 
-function getAirlinesChartConfig() {
-    let width = 350;
-    let height = 400;
-    let margin = {
-        top: 10,
-        bottom: 50,
-        left: 130,
-        right: 10
-    }
+//     const airports = groupByAirport(store.routes);
+//     drawAirports(airports);
+// }
 
-    let bodyHeight = height - margin.top - margin.bottom
-    let bodyWidth = width - margin.left - margin.right
+// function getAirlinesChartConfig() {
+//     let width = 350;
+//     let height = 400;
+//     let margin = {
+//         top: 10,
+//         bottom: 50,
+//         left: 130,
+//         right: 10
+//     }
 
-    let container = d3.select("#AirlinesChart");
-    container
-        .attr("width", width)
-        .attr("height", height)
+//     let bodyHeight = height - margin.top - margin.bottom
+//     let bodyWidth = width - margin.left - margin.right
 
-    return { width, height, margin, bodyHeight, bodyWidth, container }
-}
+//     let container = d3.select("#AirlinesChart");
+//     container
+//         .attr("width", width)
+//         .attr("height", height)
 
-function drawAirlinesChart(airlines) {
-    let config = getAirlinesChartConfig();
-    let scales = getAirlinesChartScales(airlines, config);
-    drawBarsAirlinesChart(airlines, scales, config)
-    drawAxesAirlinesChart(scales, config);
-}
+//     return { width, height, margin, bodyHeight, bodyWidth, container }
+// }
 
-function getAirlinesChartScales(airlines, config) {
-    let { bodyWidth, bodyHeight } = config;
-    let maximunCount = d3.max(airlines, v => v.Count)
+// function drawAirlinesChart(airlines) {
+//     let config = getAirlinesChartConfig();
+//     let scales = getAirlinesChartScales(airlines, config);
+//     drawBarsAirlinesChart(airlines, scales, config)
+//     drawAxesAirlinesChart(scales, config);
+// }
 
-    let xScale = d3.scaleLinear()
-        .range([0, bodyWidth])
-        .domain([0, maximunCount])
+// function getAirlinesChartScales(airlines, config) {
+//     let { bodyWidth, bodyHeight } = config;
+//     let maximunCount = d3.max(airlines, v => v.Count)
 
-    let yScale = d3.scaleBand()
-        .range([0, bodyHeight])
-        .domain(airlines.map(a => a.AirlineName))
-        .padding(0.2)
+//     let xScale = d3.scaleLinear()
+//         .range([0, bodyWidth])
+//         .domain([0, maximunCount])
 
-    return { xScale, yScale }
-}
+//     let yScale = d3.scaleBand()
+//         .range([0, bodyHeight])
+//         .domain(airlines.map(a => a.AirlineName))
+//         .padding(0.2)
 
-function drawBarsAirlinesChart(airlines, scales, config) {
-    let { margin, container } = config
-    let { xScale, yScale } = scales
-    let body = container.append("g")
-        .style("transform",
-            `translate(${margin.left}px,${margin.top}px)`
-        )
+//     return { xScale, yScale }
+// }
 
-    let bars = body.selectAll(".bar")
-        .data(airlines)
+// function drawBarsAirlinesChart(airlines, scales, config) {
+//     let { margin, container } = config
+//     let { xScale, yScale } = scales
+//     let body = container.append("g")
+//         .style("transform",
+//             `translate(${margin.left}px,${margin.top}px)`
+//         )
 
-    bars.enter().append("rect")
-        .attr("height", yScale.bandwidth())
-        .attr("y", (d) => yScale(d.AirlineName))
-        .attr("width", v => xScale(v.Count))
-        .attr("fill", "#2a5599")
-}
+//     let bars = body.selectAll(".bar")
+//         .data(airlines)
 
-function drawAxesAirlinesChart(scales, config) {
-    let { xScale, yScale } = scales
-    let { container, margin, height } = config;
-    let axisX = d3.axisBottom(xScale)
-        .ticks(5)
+//     bars.enter().append("rect")
+//         .attr("height", yScale.bandwidth())
+//         .attr("y", (d) => yScale(d.AirlineName))
+//         .attr("width", v => xScale(v.Count))
+//         .attr("fill", "#2a5599")
+// }
 
-    container.append("g")
-        .style("transform",
-            `translate(${margin.left}px,${height - margin.bottom}px)`
-        )
-        .call(axisX)
+// function drawAxesAirlinesChart(scales, config) {
+//     let { xScale, yScale } = scales
+//     let { container, margin, height } = config;
+//     let axisX = d3.axisBottom(xScale)
+//         .ticks(5)
 
-    let axisY = d3.axisLeft(yScale)
+//     container.append("g")
+//         .style("transform",
+//             `translate(${margin.left}px,${height - margin.bottom}px)`
+//         )
+//         .call(axisX)
 
-    container.append("g")
-        .style("transform",
-            `translate(${margin.left}px,${margin.top}px)`
-        )
-        .call(axisY)
-}
+//     let axisY = d3.axisLeft(yScale)
 
-function getMapConfig() {
-    const width = 600;
-    const height = 400;
-    const container = d3.select("#Map");
-    container
-        .style("height", height)
-        .style("width", width);
-    return { width, height, container }
-}
+//     container.append("g")
+//         .style("transform",
+//             `translate(${margin.left}px,${margin.top}px)`
+//         )
+//         .call(axisY)
+// }
 
-function getMapProjection(config) {
-    const { height, width } = config;
-    const projection = d3.geoMercator();
-    projection.scale(97)
-        .translate([width / 2, height / 2 + 20])
-    store.mapProjection = projection;
-    return store.mapProjection;
-}
+// function getMapConfig() {
+//     const width = 600;
+//     const height = 400;
+//     const container = d3.select("#Map");
+//     container
+//         .style("height", height)
+//         .style("width", width);
+//     return { width, height, container }
+// }
 
-function drawBaseMap(container, countries, projection) {
-    const path = d3.geoPath().projection(projection);
-    container.selectAll("path").data(countries)
-        .enter()
-        .append("path")
-        .attr("d", d => path(d))
-        .attr("stroke", "#ccc")
-        .attr("fill", "#eee")
-}
+// function getMapProjection(config) {
+//     const { height, width } = config;
+//     const projection = d3.geoMercator();
+//     projection.scale(97)
+//         .translate([width / 2, height / 2 + 20])
+//     store.mapProjection = projection;
+//     return store.mapProjection;
+// }
 
-function drawMap(geoJson) {
-    const config = getMapConfig();
-    const projection = getMapProjection(config);
-    drawBaseMap(config.container, geoJson.features, projection);
-}
+// function drawBaseMap(container, countries, projection) {
+//     const path = d3.geoPath().projection(projection);
+//     container.selectAll("path").data(countries)
+//         .enter()
+//         .append("path")
+//         .attr("d", d => path(d))
+//         .attr("stroke", "#ccc")
+//         .attr("fill", "#eee")
+// }
 
-function groupByAirport(data) {
-    let result = data.reduce((result, d) => {
-        const currentDest = result[d.DestAirportID] || {
-            "AirportID": d.DestAirportID,
-            "Airport": d.DestAirport,
-            "Latitude": +d.DestLatitude,
-            "Longitude": +d.DestLongitude,
-            "City": d.DestCity,
-            "Country": d.DestCountry,
-            "Count": 0,
-        }
-        currentDest.Count += 1;
-        result[d.DestAirportID] = currentDest;
+// function drawMap(geoJson) {
+//     const config = getMapConfig();
+//     const projection = getMapProjection(config);
+//     drawBaseMap(config.container, geoJson.features, projection);
+// }
 
-        const currentSource = result[d.SourceAirportID] || {
-            "AirportID": d.SourceAirportID,
-            "Airport": d.SourceAirport,
-            "Latitude": +d.SourceLatitude,
-            "Longitude": +d.SourceLongitude,
-            "City": d.SourceCity,
-            "Country": d.SourceCountry,
-            "Count": 0,
-        }
-        currentSource.Count += 1;
-        result[d.SourceAirportID] = currentSource;
-        return result;
-    }, {});
+// function groupByAirport(data) {
+//     let result = data.reduce((result, d) => {
+//         const currentDest = result[d.DestAirportID] || {
+//             "AirportID": d.DestAirportID,
+//             "Airport": d.DestAirport,
+//             "Latitude": +d.DestLatitude,
+//             "Longitude": +d.DestLongitude,
+//             "City": d.DestCity,
+//             "Country": d.DestCountry,
+//             "Count": 0,
+//         }
+//         currentDest.Count += 1;
+//         result[d.DestAirportID] = currentDest;
 
-    result = Object.keys(result).map(key => result[key]);
-    return result;
-}
+//         const currentSource = result[d.SourceAirportID] || {
+//             "AirportID": d.SourceAirportID,
+//             "Airport": d.SourceAirport,
+//             "Latitude": +d.SourceLatitude,
+//             "Longitude": +d.SourceLongitude,
+//             "City": d.SourceCity,
+//             "Country": d.SourceCountry,
+//             "Count": 0,
+//         }
+//         currentSource.Count += 1;
+//         result[d.SourceAirportID] = currentSource;
+//         return result;
+//     }, {});
 
-function drawAirports(airports) {
-    const config = getMapConfig();
-    const projection = getMapProjection(config);
-    const container = config.container;
+//     result = Object.keys(result).map(key => result[key]);
+//     return result;
+// }
 
-    const circles = container.selectAll("circle")
-        .data(airports)
-        .enter()
-        .append("circle")
-        .attr("r", 1)
-        .attr("fill", "#2a5599")
-        .attr("cx", d => projection([+d.Longitude, +d.Latitude])[0])
-        .attr("cy", d => projection([+d.Longitude, +d.Latitude])[1])
-}
+// function drawAirports(airports) {
+//     const config = getMapConfig();
+//     const projection = getMapProjection(config);
+//     const container = config.container;
 
-loadData().then(showData);
+//     const circles = container.selectAll("circle")
+//         .data(airports)
+//         .enter()
+//         .append("circle")
+//         .attr("r", 1)
+//         .attr("fill", "#2a5599")
+//         .attr("cx", d => projection([+d.Longitude, +d.Latitude])[0])
+//         .attr("cy", d => projection([+d.Longitude, +d.Latitude])[1])
+// }
+
+// loadData().then(showData);
