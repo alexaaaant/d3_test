@@ -1,39 +1,66 @@
 import * as d3 from 'd3'
 
-d3.json("data.json").then(showData)
+let body = d3.select("#body")
+let yAxisContainer = d3.select("#yAxis")
+let data = []
+d3.csv("data.csv").then((d) => {
+    data = d;
+    showData(data)
+})
 
-const body = d3.select("#body")
+function select(datapoint) {
 
-function showData(data) {
-    const bodyHeight = 300;
-    const bodyWidth = 500;
+}
 
-    const treemap = d3.treemap()
-        .size([bodyWidth, bodyHeight])
-        .paddingInner(2)
+function showData(clients) {
+    let max = d3.max(clients, d => +d.Weight)
+    let scale = d3.scaleLinear().range([0, 60])
+        .domain([0, max])
 
-    const root = d3.hierarchy(data)
-        .sum(d => d.sales)
+    let scalePosition = d3.scaleBand().rangeRound([0, 130]).domain(clients.map(d => d.Name))
+    scalePosition.padding(0.3)
+    let join = body.selectAll("rect")
+        .data(clients)
 
-    treemap(root)
+    join.enter()
+        .append("rect")
+        .style("fill", "blue")
+        .style("stroke", "white")
+        .attr("width", d => scale(+d.Weight))
+        .attr("height", scalePosition.bandwidth())
+        .attr("transform", d => `translate(0,${scalePosition(d.Name)})`)
+        .on("click", d => {
+            d3.select("#details").text(d.Name)
+        })
+        .on("mouseover", function () {
+            this.style.fill = "red";
+        })
+        .on("mouseout", function () {
+            this.style.fill = "blue";
+        })
 
-    const cScale = d3.scaleOrdinal(d3.schemeCategory10)
+    let line = d3.select("#container").append("g")
+        .attr("transform", "translate(0,-10)")
 
-    const cell = body.selectAll("g")
-        .data(root.leaves())
-        .enter()
-        .append("g")
-        .attr("transform", d => `translate(${d.x0}, ${d.y0})`)
+    line = line.append("line")
+        .attr("x1", 0)
+        .attr("x2", 0)
+        .attr("y1", 0)
+        .attr("y2", 200)
+        .attr("stroke", "red")
+        .attr("stroke-width", "3px")
 
-    cell.append("rect")
-        .attr("width", d => d.x1 - d.x0)
-        .attr("height", d => d.y1 - d.y0)
-        .attr("fill", d => cScale(d.parent.data.name))
+    let yAxis = d3.axisLeft(scalePosition)
+    yAxisContainer = d3.select("#yAxis")
+        .style("transform", "translate(40px, 10px)")
+        .transition()
+        .call(yAxis)
 
-    cell.append("text")
-        .text(d => d.data.name)
-        .attr("alignment-baseline", "hanging")
-        .attr("fill", "white")
+    d3.select("#container").on("mousemove", function () {
+        const x = d3.mouse(this)[0];
+        line.attr("transform", `translate(${x},-10)`)
+    })
+
 }
 // const store = {};
 
