@@ -1,74 +1,76 @@
 import * as d3 from 'd3'
 
-let yAxisContainer = d3.select("#yAxis")
-let data = []
-d3.csv("data.csv").then((d) => {
-    data = d;
-    showData(data)
-})
-
 let body = d3.select("#body")
 
 d3.csv("data.csv").then((data) => {
     showData(data)
-    d3.select("#save").on("click", function () {
-        let name = d3.select("#name").node().value;
-        let weight = d3.select("#weight").node().value;
-        let client = data.find(d => d.Name === name);
-        if (client) {
-            client.Weight = weight;
-        } else {
-            data.push({
-                Name: name,
-                Weight: weight,
+
+    const brush = d3.brush();
+    brush.on("brush", function () {
+        const coords = d3.event.selection;
+        body.selectAll("circle")
+            .style("fill", function (d) {
+                console.log(d)
+
+                const cx = d3.select(this).attr("cx");
+                const cy = d3.select(this).attr("cy");
+
+                const selected = isSelected(coords, cx, cy);
+                return selected ? "red" : "blue";
             })
-        }
-
-        showData(data)
     })
-
-    d3.select("#min-weight").on("change", function () {
-        let value = this.value;
-        const filteredData = data.filter(c => +c.Weight > value);
-        showData(filteredData)
-    })
+    body.append("g")
+        .attr("class", "brush")
+        .call(brush)
 })
 
-
-
 function showData(clients) {
-    let max = d3.max(clients, d => +d.Weight)
-    let scale = d3.scaleLinear().range([0, 60])
-        .domain([0, max])
+    let bodyWidth = 300;
+    let bodyHeight = 300;
+    let xExtent = d3.extent(clients, d => +d.Weight)
+    let xScale = d3.scaleLinear().range([0, bodyWidth])
+        .domain([xExtent[0] - 5, xExtent[1] + 5])
 
-    let scalePosition = d3.scaleBand().rangeRound([0, 130]).domain(clients.map(d => d.Name))
-    scalePosition.padding(0.3)
-    let join = body.selectAll("rect")
+
+    let yExtent = d3.extent(clients, d => +d.Height)
+    let yScale = d3.scaleLinear().range([0, bodyHeight])
+        .domain([yExtent[0] - 5, yExtent[1] + 5])
+
+    let join = body.selectAll("circle")
         .data(clients)
 
     let newelements = join.enter()
-        .append("rect")
+        .append("circle")
         .style("fill", "blue")
-        .style("stroke", "white")
-        .on("click", function (d) {
-            d3.select("#name").node().value = d.Name;
-            d3.select("#weight").node().value = d.Weight
-        })
+        .style("r", "5")
 
-    join.merge(newelements).transition()
-        .attr("width", d => scale(+d.Weight))
-        .attr("height", scalePosition.bandwidth())
-        .attr("transform", d => `translate(0,${scalePosition(d.Name)})`)
-
-    join.exit().transition().remove()
-
-    let yAxis = d3.axisLeft(scalePosition)
-    yAxisContainer = d3.select("#yAxis")
-        .style("transform", "translate(40px, 10px)")
+    join.merge(newelements)
         .transition()
-        .call(yAxis)
+        .attr("cx", d => xScale(+d.Weight))
+        .attr("cy", d => yScale(+d.Height))
+
+
+    d3.select("#yAxis")
+        .style("transform", "translate(40px, 10px)")
+        .call(d3.axisLeft(yScale))
+
+    d3.select("#xAxis")
+        .style("transform", `translate(40px, ${bodyHeight + 10}px)`)
+        .call(d3.axisBottom(xScale))
+
+
 
 }
+
+function isSelected(coords, x, y) {
+    let x0 = coords[0][0],
+        x1 = coords[1][0],
+        y0 = coords[0][1],
+        y1 = coords[1][1];
+
+    return x0 <= x && x <= x1 && y0 <= y && y <= y1;
+}
+
 // const store = {};
 
 // async function loadData() {
