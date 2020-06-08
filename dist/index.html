@@ -28,15 +28,43 @@
             fill: none;
             stroke: blue;
         } */
+        body {
+            padding-left: 20px;
+        }
+
+        svg {
+            border: solid 1px #000;
+            margin-top: 10px;
+        }
+
+        #tooltip {
+            position: fixed;
+            top: 10px;
+            left: 0px;
+            padding: 5px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: solid 1px black;
+            display: none;
+        }
+
+        path {
+            fill: none
+        }
     </style>
 </head>
 
 <body>
-    <svg id="container" height="350" width="350" , style="border: solid 1px #000; margin-top: 10px">
-        <g id="body" style="transform:translate(40px,10px)"></g>
-        <g id="yAxis"></g>
-        <g id="xAxis"></g>
-    </svg>    
+    <svg id="barchart">
+        <g class="body" />
+    </svg>
+    <svg id="timeline">
+        <g class="xAxis" />
+        <g class="yAxis" />
+        <g class="body">
+            <path style="stroke: black" />
+        </g>
+    </svg>
+    <div id="tooltip">Tooltip</div>
     <!-- <h1>Airlines Routes</h1>
     <div class="mainView">
         <div>

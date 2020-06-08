@@ -1,76 +1,129 @@
 import * as d3 from 'd3'
 
-let body = d3.select("#body")
+let barchart = d3.select("#barchart")
+let timeline = d3.select("#timeline")
 
-d3.csv("data.csv").then((data) => {
-    showData(data)
+let width = 300;
+let height = 200;
 
-    const brush = d3.brush();
-    brush.on("brush", function () {
-        const coords = d3.event.selection;
-        body.selectAll("circle")
-            .style("fill", function (d) {
-                console.log(d)
+barchart.attr("height", height)
+barchart.attr("width", width)
 
-                const cx = d3.select(this).attr("cx");
-                const cy = d3.select(this).attr("cy");
+timeline.attr("height", height)
+timeline.attr("width", width)
 
-                const selected = isSelected(coords, cx, cy);
-                return selected ? "red" : "blue";
-            })
+let selectedCountry = undefined;
+
+d3.csv("data.csv")
+    .then((data) => {
+        data = prepareData(data)
+        drawBarChart(data)
     })
-    body.append("g")
-        .attr("class", "brush")
-        .call(brush)
-})
 
-function showData(clients) {
-    let bodyWidth = 300;
-    let bodyHeight = 300;
-    let xExtent = d3.extent(clients, d => +d.Weight)
-    let xScale = d3.scaleLinear().range([0, bodyWidth])
-        .domain([xExtent[0] - 5, xExtent[1] + 5])
+function prepareData(data) {
+    return data.map(d => {
+        const years = Object.keys(d)
+            .filter(k => !isNaN(+k))
+        const history = years.map(y => ({
+            year: y,
+            value: d[y]
+        }))
+        d.history = history;
+        d[2016] = +d[2016]
+        return d;
+    })
+}
 
+function showTooltip(text, coords) {
+    let x = coords[0];
+    let y = coords[1];
 
-    let yExtent = d3.extent(clients, d => +d.Height)
-    let yScale = d3.scaleLinear().range([0, bodyHeight])
-        .domain([yExtent[0] - 5, yExtent[1] + 5])
+    d3.select("#tooltip")
+        .style("display", "block")
+        .style("top", `${y}px`)
+        .style("left", `${x}px`)
+        .text(text)
+}
 
-    let join = body.selectAll("circle")
-        .data(clients)
+function drawLineChart(data) {
+    data = data.history;
+    let margin = { left: 40, bottom: 20, right: 20, top: 20 }
 
-    let newelements = join.enter()
-        .append("circle")
-        .style("fill", "blue")
-        .style("r", "5")
+    let bodyWidth = width - margin.left - margin.right;
+    let bodyHeight = height - margin.top - margin.bottom;
 
-    join.merge(newelements)
-        .transition()
-        .attr("cx", d => xScale(+d.Weight))
-        .attr("cy", d => yScale(+d.Height))
+    let xScale = d3.scaleLinear()
+        .range([0, bodyWidth])
+        .domain(d3.extent(data, d => d.year))
 
+    let yScale = d3.scaleLinear()
+        .range([bodyHeight, 0])
+        .domain([0, d3.max(data, d => d.value)])
 
-    d3.select("#yAxis")
-        .style("transform", "translate(40px, 10px)")
-        .call(d3.axisLeft(yScale))
+    let lineGenerator = d3.line()
+        .x(d => xScale(d.year))
+        .y(d => yScale(d.value))
 
-    d3.select("#xAxis")
-        .style("transform", `translate(40px, ${bodyHeight + 10}px)`)
-        .call(d3.axisBottom(xScale))
+    timeline.select(".body")
+        .attr("transform", `translate(${margin.left},${margin.top})`)
+        .select("path").datum(data)
+        .attr("d", lineGenerator)
 
+    timeline.select(".xAxis")
+        .attr("transform", `translate(${margin.left},${height - margin.bottom})`)
+        .call(d3.axisBottom(xScale).ticks(5))
 
+    timeline.select(".yAxis")
+        .attr("transform", `translate(${margin.left},${margin.top})`)
+        .call(d3.axisLeft(yScale).ticks(5).tickFormat(d => (d / 1e12) + "T"))
 
 }
 
-function isSelected(coords, x, y) {
-    let x0 = coords[0][0],
-        x1 = coords[1][0],
-        y0 = coords[0][1],
-        y1 = coords[1][1];
+function drawBarChart(data) {
+    let margin = { left: 20, bottom: 20, right: 20, top: 20 }
 
-    return x0 <= x && x <= x1 && y0 <= y && y <= y1;
+    let bodyWidth = width - margin.left - margin.right;
+    let bodyHeight = height - margin.top - margin.bottom;
+
+    let xScale = d3.scaleBand()
+        .range([0, bodyWidth])
+        .domain(data.map(d => d.Country))
+        .padding(0.2)
+
+    let yScale = d3.scaleLinear()
+        .range([bodyHeight, 0])
+        .domain([0, d3.max(data, d => d[2016])])
+
+    const barChartBody = barchart.select(".body")
+        .attr("transform", `translate(${margin.left},${margin.bottom})`)
+        .selectAll("rect")
+        .data(data)
+
+    barChartBody.enter()
+        .append("rect")
+        .attr("fill", "#556677")
+        .attr("width", xScale.bandwidth())
+        .attr("height", d => bodyHeight - yScale(d[2016]))
+        .attr("y", d => yScale(d[2016]))
+        .attr("x", d => xScale(d.Country))
+        .on("mouseenter", (d) => {
+            showTooltip(d.Country, [d3.event.clientX, d3.event.clientY])
+        })
+        .on("mousemove", (d) => {
+            showTooltip(d.Country, [d3.event.clientX, d3.event.clientY + 30])
+        })
+        .on("mouseleave", (d) => {
+            d3.select("#tooltip").style("display", "none")
+        })
+        .on("click", d => {
+            selectedCountry = d.Country;
+            drawBarChart(data);
+            drawLineChart(d);
+        }).merge(barChartBody)
+        .attr("fill", d => selectedCountry === d.Country ? "red" : "#556677")
+
+
 }
-
 // const store = {};
 
 // async function loadData() {
