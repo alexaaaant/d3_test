@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/alexaaaant/d3_test#readme",
   "dependencies": {
-    "d3": "^5.16.0",
+    "d3": "^7.6.1",
     "webpack": "^4.43.0",
     "webpack-cli": "^3.3.11"
   },
